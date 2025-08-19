@@ -5,20 +5,61 @@ const https = require("https");
 const db = require("./models");
 require("dotenv").config();
 const cors = require("cors");
+const rateLimit = require("express-rate-limit");
 
 const app = express();
 
-// Middleware keamanan
-app.use(helmet());
-app.use(express.json());
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    message: {
+        message: "Too many requests from this IP, please try again later.",
+        retryAfter: Math.ceil(15 * 60)
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
 
-// Tambahkan middleware CORS sebelum route apa pun
-app.use(cors({
-  origin: 'http://localhost:13173', // sesuaikan dengan alamat frontend Anda
-  credentials: true
+const adminLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, 
+    max: 10, 
+    message: {
+        message: "Too many admin requests from this IP, please try again later.",
+        retryAfter: Math.ceil(15 * 60)
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            scriptSrc: ["'self'"],
+            imgSrc: ["'self'", "data:", "https:"],
+            connectSrc: ["'self'"],
+            fontSrc: ["'self'"],
+            objectSrc: ["'none'"],
+            mediaSrc: ["'self'"],
+            frameSrc: ["'none'"],
+        },
+    },
+    crossOriginEmbedderPolicy: false,
 }));
 
-// Autentikasi database
+app.use(express.json({ limit: '10kb' }));
+app.use(express.urlencoded({ extended: true, limit: '10kb' }));
+
+app.use(cors({
+    origin: ['http://localhost:13173'],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-access-token'],
+    exposedHeaders: ['x-access-token'],
+    maxAge: 86400
+}));
+
 db.sequelize.authenticate()
   .then(() => {
     console.log("Database connected successfully.");
@@ -31,15 +72,14 @@ db.sequelize.authenticate()
     console.error("Unable to connect to the database:", err.message);
   });
 
-
 // Route sederhana
 app.get('/', (req, res) => {
   res.send('Hello World!SUB_API');
 });
 
-// Import route lainnya
-require('./routes/auth.route')(app)
-require('./routes/election.route')(app);
+// Import route lainnya dengan rate limiting
+require('./routes/auth.route')(app, authLimiter)
+require('./routes/election.route')(app, adminLimiter);
 
 // Port
 const PORT = process.env.PORT || 7000;
@@ -47,8 +87,8 @@ const PORT = process.env.PORT || 7000;
 // Konfigurasi SSL jika SSL=ON
 if (process.env.SSL === "ON") {
   const sslOptions = {
-    key: fs.readFileSync("./certs/server.key"),
-    cert: fs.readFileSync("./certs/server.crt")
+    key: fs.readFileSync("/etc/ssl/private/server.key"),
+    cert: fs.readFileSync("/etc/ssl/private/server.crt")
   };
 
   https.createServer(sslOptions, app).listen(PORT, () => {
@@ -56,6 +96,6 @@ if (process.env.SSL === "ON") {
   });
 } else {
   app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
+    console.log(`Server is running on https://localhost:${PORT}`);
   });
 }

@@ -16,8 +16,8 @@ RUN apt-get update && apt-get install -y postgresql-client nano && \
 COPY . .
 
 # Salin sertifikat SSL
-COPY certs/server.key /etc/ssl/server.key
-COPY certs/server.crt /etc/ssl/server.crt
+COPY certs/server.key /etc/ssl/private/server.key
+COPY certs/server.crt /etc/ssl/private/server.crt
 
 # RUN chmod 600 /etc/ssl/server.key
 # RUN chmod 644 /etc/ssl/certs/server.crt

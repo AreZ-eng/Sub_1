@@ -22,6 +22,11 @@ module.exports = (sequelize, Sequelize) => {
             type: Sequelize.INTEGER,
             allowNull: false
         },
+        role: {
+            type: Sequelize.ENUM('voter', 'admin'),
+            allowNull: false,
+            defaultValue: 'voter'
+        },
         createdAt: {
             type: Sequelize.DATE,
             defaultValue: Sequelize.NOW,

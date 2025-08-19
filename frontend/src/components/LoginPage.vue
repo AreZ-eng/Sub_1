@@ -1,6 +1,6 @@
 <template>
   <form @submit.prevent="handleLogin">
-    <h2>Login</h2>
+    <h2>Login to E-Voting</h2>
     <input type="text" v-model="username" placeholder="Username" required />
     <input type="password" v-model="password" placeholder="Password" required />
     <button type="submit">Login</button>

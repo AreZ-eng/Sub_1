@@ -86,7 +86,7 @@ const submitVote = async () => {
         <img :src="candidate.photourl" alt="Foto Kandidat" class="candidate-image" />
         <p><strong>Partai:</strong> {{ candidate.party }}</p>
         <p>{{ candidate.description }}</p>
-        <button @click="confirmPick(candidate.candidateNumber)">Pick</button>
+        <button @click="confirmPick(candidate.candidateNumber)">Pilih</button>
       </div>
     </div>
 

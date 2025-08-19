@@ -18,13 +18,27 @@ verifyToName = (req, res, next) => {
             });
         }
 
-        if(decoded.id === '22d3e3dc-4043-4b66-a957-63152d7726d5'){
-            next();
-        } else {
-            return res.status(403).send({
-                message: "Not Allowed!",
+        if (!decoded.id || !decoded.aud || !decoded.iss || !decoded.jti) {
+            return res.status(401).send({
+                message: "Invalid token claims!",
             });
         }
+
+        if (decoded.aud !== 'e-voting-app' || decoded.iss !== 'main-api') {
+            return res.status(401).send({
+                message: "Invalid token audience or issuer!",
+            });
+        }
+
+        if (decoded.role !== 'admin') {
+            return res.status(403).send({
+                message: "Admin role required!",
+            });
+        }
+
+        req.id = decoded.id;
+        req.token = token;
+        next();
     });
 };
 

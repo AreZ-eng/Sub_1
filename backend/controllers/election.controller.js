@@ -9,17 +9,20 @@ const axios = require("axios");
 const https = require("https");
 const bcrypt = require('bcrypt');
 const { totalPassword } = require('../configs/auth.config.js');
+const { mainApiBaseUrl } = require("../configs/service.config");
 
 exports.getCandidate = async (req, res) => {
     try {
         const candidates = await Candidate.findAll({
             attributes: ['candidateNumber', 'name', 'party', 'description', 'photourl'],});
         if (!candidates || candidates.length === 0) {
+            console.error(`[ELECTION] getCandidate - Error: No candidates found`);
             return res.status(404).json({ message: "No candidates found" });
         }
+        console.error(`[ELECTION] getCandidate success`);
         return res.status(200).json({ message: "Candidates ready", candidates });
     } catch (error) {
-        console.error("Error fetching candidates:", error);
+        console.error(`[ELECTION] getCandidate - Error:`, error);
         return res.status(500).json({ message: "Error fetching candidates", error });
     }
 };
@@ -31,8 +34,11 @@ const candidateUuidToNumber = {
 };
 
 exports.makeVoting = async (req, res) => {
+    console.log(`[ELECTION] makeVoting for ${req.id}`);
+    
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+        console.error(`[ELECTION] makeVoting - Error: Validation errors for user ${req.id}`, errors.array());
         return res.status(400).json({ errors: errors.array() });
     }
 
@@ -45,16 +51,19 @@ exports.makeVoting = async (req, res) => {
     try {
         const existingVote = await Vote.findOne({ where: { userId }, transaction });
         if (existingVote) {
+            console.error(`[ELECTION] makeVoting - Error: User ${req.id} has already voted`);
             return res.status(409).json({ message: "User has already voted." });
         }
 
         const selectedCandidate = await Candidate.findOne({ where: { candidateNumber: candidate } });
         if (!selectedCandidate) {
+            console.error(`[ELECTION] makeVoting - Error: Invalid candidate selection ${candidate} for user ${req.id}`);
             return res.status(400).json({ message: "Invalid candidate selection." });
         }
 
         const candidateNumber = candidateUuidToNumber[selectedCandidate.candidateNumber];
         if (!candidateNumber) {
+            console.error(`[ELECTION] makeVoting - Error: Candidate UUID ${selectedCandidate.candidateNumber} not mapped for user ${req.id}`);
             return res.status(400).json({ message: "Candidate UUID not mapped." });
         }
 
@@ -63,7 +72,6 @@ exports.makeVoting = async (req, res) => {
         voteArray[candidateNumber - 1] = 1;
 
         const encryptedVote = await encVote(voteArray);
-
         const hash = crypto.createHash("sha256").update(encryptedVote + userId + tps).digest("hex");
 
         await Vote.create(
@@ -73,10 +81,11 @@ exports.makeVoting = async (req, res) => {
             },
             { transaction }
         );
+        
         const agent = new https.Agent({ rejectUnauthorized: false });
         try {
             const mainApiResponse = await axios.post(
-                "http://app_main_api:5000/api/election/finishvoting",
+                `${mainApiBaseUrl}/api/election/finishvoting`,
                 { hash },
                 {
                     headers: { Authorization: `Bearer ${token}` },
@@ -85,21 +94,22 @@ exports.makeVoting = async (req, res) => {
             );
 
             await transaction.commit();
+            console.log(`[ELECTION] makeVoting - Success: ${req.id}`);
             return res.status(200).json({
                 message: "Vote successfully recorded.",
                 mainApiResponse: mainApiResponse.data,
             });
         } catch (mainApiError) {
             await transaction.rollback();
-            console.error("Error communicating with MAIN API:", mainApiError.response?.data || mainApiError.message);
+            console.error(`[ELECTION] makeVoting - Error: Main API communication failed for user ${req.id}`, mainApiError.response?.data || mainApiError.message);
             return res.status(502).json({
                 message: "Vote recorded, but failed to notify MAIN API.",
                 error: mainApiError.response?.data || mainApiError.message,
             });
         }
     } catch (error) {
+        console.error(`[ELECTION] makeVoting - Error:`, error);
         await transaction.rollback();
-        console.error("Error processing vote:", error);
         return res.status(500).json({ message: "Error processing the vote", error });
     }
 };
@@ -107,6 +117,7 @@ exports.makeVoting = async (req, res) => {
 exports.totalBallots = async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+        console.error(`[ELECTION] totalBallots - Error: Validation errors`, errors.array());
         return res.status(400).json({ errors: errors.array() });
     }
 
@@ -117,6 +128,7 @@ exports.totalBallots = async (req, res) => {
         const isPasswordValid = await bcrypt.compare(password, dpassword);
 
         if (!isPasswordValid) {
+            console.error(`[ELECTION] totalBallots - Error: Invalid password provided`);
             return res.status(403).json({ message: "Invalid password." });
         }
 
@@ -125,6 +137,7 @@ exports.totalBallots = async (req, res) => {
         });
 
         if (!votes || votes.length === 0) {
+            console.error(`[ELECTION] totalBallots - Error: No ballots found`);
             return res.status(404).json({ message: "No ballots found." });
         }
 
@@ -150,13 +163,14 @@ exports.totalBallots = async (req, res) => {
 
         fs.writeFileSync(outputFile, JSON.stringify(outputData, null, 2));
 
+        console.log(`[ELECTION] totalBallots - Success`);
         return res.status(200).json({
             message: "The ballots calculated successfully.",
             totalEncryptedVotes: totalEncryptedVotes,
             exportFile: outputFile,
         });
     } catch (error) {
-        console.error("Error calculating total ballots:", error);
+        console.error(`[ELECTION] totalBallots - Error:`, error);
         return res.status(500).json({ message: "Error calculating total ballots", error });
     }
 };
@@ -164,8 +178,11 @@ exports.totalBallots = async (req, res) => {
 const { Op } = require("sequelize");
 
 exports.resetVotes = async (req, res) => {
+    console.log(`[ELECTION] resetVotes for ${req.id}`);
+    
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+        console.error(`[ELECTION] resetVotes - Error: Validation errors for user ${req.id}`, errors.array());
         return res.status(400).json({ errors: errors.array() });
     }
 
@@ -180,6 +197,7 @@ exports.resetVotes = async (req, res) => {
         });
 
         if (!votes || votes.length === 0) {
+            console.log(`[ELECTION] resetVotes - No votes found for user ${req.id}, continuing...`);
             return res.status(200).json({ message: "No votes found. Continue..." });
         }
 
@@ -187,9 +205,10 @@ exports.resetVotes = async (req, res) => {
             where: { userId: { [Op.in]: ids } }
         });
 
+        console.log(`[ELECTION] resetVotes - Success votes deleted for ${req.id})`);
         return res.status(200).json({ message: "Votes reset successfully." });
     } catch (error) {
-        console.error("Error resetting votes:", error);
+        console.error(`[ELECTION] resetVotes - Error:`, error);
         return res.status(500).json({ message: "Error resetting votes", error });
     }
 };
@@ -203,17 +222,17 @@ exports.getBallots = async (req, res) => {
         if (!fs.existsSync(outputFolder)) {
             fs.mkdirSync(outputFolder, { recursive: true });
         }
-        // Cari file total_ballots_*.json terbaru
+        
         const files = fs.readdirSync(outputFolder)
             .filter(f => f.startsWith('total_ballots_') && f.endsWith('.json'))
             .sort((a, b) => {
-                // Urutkan berdasarkan waktu (timestamp di nama file)
                 const aTime = parseInt(a.split('_')[2]);
                 const bTime = parseInt(b.split('_')[2]);
                 return bTime - aTime;
             });
 
         if (!files.length) {
+            console.error(`[ELECTION] getBallots - Error: No ballots file found`);
             return res.status(404).json({ message: "No ballots file found." });
         }
 
@@ -221,12 +240,13 @@ exports.getBallots = async (req, res) => {
         const fileContent = fs.readFileSync(latestFile, 'utf-8');
         const jsonData = JSON.parse(fileContent);
 
+        console.log(`[ELECTION] getBallots - Success: ${files[0]}`);
         return res.status(200).json({
             message: "Ballots file loaded successfully.",
             data: jsonData
         });
     } catch (error) {
-        console.error("Error fetching ballots file:", error);
+        console.error(`[ELECTION] getBallots - Error:`, error);
         return res.status(500).json({ message: "Error fetching ballots file", error });
     }
 }

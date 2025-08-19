@@ -12,15 +12,15 @@ CREATE TABLE IF NOT EXISTS "users" (
 );
 
 -- Menyisipkan data ke dalam tabel users
-INSERT INTO "users" (id, nama, alamat, tiket, tps, "createdAt", "updatedAt") 
+INSERT INTO "users" (id, nama, alamat, tiket, tps, "role",  "createdAt", "updatedAt") 
 VALUES
-('a86e1b44-a49c-4e69-812f-d1b849760018', 'John Doe', '123 Main St, Springfield, IL', '$2b$08$dU899fYSTFB5mA3WClB0POjeWj0qfENVdiLHqTJVrDOEQiUFs8sIi', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('6b68295b-e2a4-4313-9b61-1c2b2922aa19', 'Jane Smith', '456 Oak St, Springfield, IL', '$2b$08$A74AmJm0RokL0hbvc.cnVeyH321qEL6fKSewzXZtHlJYPww2uIxTe', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('d1623ada-a545-4249-bdc3-c9e0bd11dfe0', 'Alice Johnson', '789 Pine St, Springfield, IL', '$2b$08$94WGemtRnLt.bbelvrNTnex3rin1zt9gmpSUG0KjWwZl4sllTzbg6', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('95eee59f-db16-4ebc-8af5-2e81d4676695', 'Bob Brown', '101 Maple St, Springfield, IL', '$2b$08$kt31xVeHCeu7Tv01teMx1uKTueIYKB.t0nenUOvN8MAcYCG80XQpm', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('51f04eb7-0947-4344-b2c8-21651684695b', 'Charlie Green', '202 Birch St, Springfield, IL', '$2b$08$/HAZO5FJiSJf0Cjt5BNDxu5anAjN/lqJ7jzS54bIth8BskdpFsL5K', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+('a86e1b44-a49c-4e69-812f-d1b849760018', 'John Doe', '123 Main St, Springfield, IL', '$2b$12$QCF4ecMKW8bsnUj2zO7qOuCzV9QjabNWJf6tdvrr.4E7O4HISNBzS', 1, "voter", CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('6b68295b-e2a4-4313-9b61-1c2b2922aa19', 'Jane Smith', '456 Oak St, Springfield, IL', '$2b$12$3DvTHic.ER73tRMK2k4hmOm6nMIstyMCNZG3dP0f3dlElHkbA8kJu', 1, "voter", CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('d1623ada-a545-4249-bdc3-c9e0bd11dfe0', 'Alice Johnson', '789 Pine St, Springfield, IL', '$2b$12$MYAAzTtonIl7iKATxuekMulXi1fOfuf8crmRuLyJbd0AqGJ0N8vt.', 1, "voter", CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('95eee59f-db16-4ebc-8af5-2e81d4676695', 'Bob Brown', '101 Maple St, Springfield, IL', '$2b$12$Gxd34t9BE6bu340UnDMRdOu7CfYnYZuMkqmSPzVekHZel6VKc73Vu', 1, "voter", CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('51f04eb7-0947-4344-b2c8-21651684695b', 'Charlie Green', '202 Birch St, Springfield, IL', '$2b$12$PqFUcXB4OjrnUy5Yb0P4purGjA.4NeO4X.HPdLDr5X4G8a07q5ZUm', 1, "voter", CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
--- TICKET123, 456, 789, 101, 202
+-- TICKET123, 456, 789, 101, 102
 -- Membuat tabel candidates
 CREATE TABLE IF NOT EXISTS "candidates" (
   "candidateNumber" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
